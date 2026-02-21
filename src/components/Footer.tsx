@@ -1,8 +1,8 @@
-import React from 'react';
+import { type FC } from 'react';
 import { Mail, Phone, MapPin, Instagram } from 'lucide-react';
 import { PSYCHOLOGIST_NAME, CRP_NUMBER, CONTACT_EMAIL, CONTACT_PHONE } from '../constants';
 
-export const Footer: React.FC = () => {
+export const Footer: FC = () => {
   return (
     <footer className="bg-slate-900 text-slate-300">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">

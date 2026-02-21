@@ -1,10 +1,10 @@
-import React from 'react';
+import { type FC } from 'react';
 import { ArrowRight, Heart, Users, MessageCircle, Brain, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from './Button';
 import { PSYCHOLOGIST_NAME } from '../constants';
 
-export const Home: React.FC = () => {
+export const Home: FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}

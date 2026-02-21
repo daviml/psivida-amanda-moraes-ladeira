@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, type FC } from 'react';
 import { HashRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
@@ -9,13 +9,13 @@ import { Booking } from './components/Booking';
 // Scroll to top on route change
 const ScrollToTop = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 };
 
-const App: React.FC = () => {
+const App: FC = () => {
   return (
     <AuthProvider>
       <Router>

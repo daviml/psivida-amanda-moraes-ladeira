@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type FC } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchAvailableSlots, bookAppointment } from '../services/calendarService';
 import { AppointmentSlot } from '../types';
@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-export const Booking: React.FC = () => {
+export const Booking: FC = () => {
   const { user, login, isLoading: authLoading } = useAuth();
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);

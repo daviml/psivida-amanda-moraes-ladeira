@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import { useState, type FC } from 'react';
 import { Menu, X, LogIn, User as UserIcon, Calendar } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { APP_NAME } from '../constants';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
 
-export const Navbar: React.FC = () => {
+export const Navbar: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, login, logout, isLoading } = useAuth();
   const location = useLocation();
