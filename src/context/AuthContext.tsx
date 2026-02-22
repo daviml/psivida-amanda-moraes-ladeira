@@ -13,47 +13,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  // MOCK USER FOR DEVELOPMENT - Bypassing login
-  const [user, setUser] = useState<User | null>({
-    id: 'mock-user-123',
-    name: 'Usuário Teste',
-    email: 'teste@exemplo.com',
-    image: 'https://ui-avatars.com/api/?name=Usuario+Teste&background=0D8ABC&color=fff'
-  });
-  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // useEffect(() => {
-  //   const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-  //     if (firebaseUser) {
-  //       setUser({
-  //         id: firebaseUser.uid,
-  //         name: firebaseUser.displayName || 'Usuário',
-  //         email: firebaseUser.email || '',
-  //         image: firebaseUser.photoURL || undefined
-  //       });
-  //     } else {
-  //       setUser(null);
-  //     }
-  //     setIsLoading(false);
-  //   });
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'Usuário',
+          email: firebaseUser.email || '',
+          image: firebaseUser.photoURL || undefined
+        });
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
 
-  //   return () => unsubscribe();
-  // }, []);
+    return () => unsubscribe();
+  }, []);
 
   const login = async () => {
     setIsLoading(true);
     try {
-      // await signInWithPopup(auth, googleProvider);
-      // Simulate login success
-      setUser({
-        id: 'mock-user-123',
-        name: 'Usuário Teste',
-        email: 'teste@exemplo.com',
-        image: 'https://ui-avatars.com/api/?name=Usuario+Teste&background=0D8ABC&color=fff'
-      });
-      setIsLoading(false);
+      await signInWithPopup(auth, googleProvider);
     } catch (error) {
       console.error("Login failed", error);
+    } finally {
       setIsLoading(false);
     }
   };
