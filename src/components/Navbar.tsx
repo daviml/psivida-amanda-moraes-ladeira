@@ -1,5 +1,5 @@
 import { useState, type FC } from 'react';
-import { Menu, X, LogIn, User as UserIcon, Calendar } from 'lucide-react';
+import { Menu, X, LogIn, User as UserIcon, Calendar, ShieldCheck } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { APP_NAME } from '../constants';
 import { useAuth } from '../context/AuthContext';
@@ -9,6 +9,8 @@ export const Navbar: FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { user, login, logout, isLoading } = useAuth();
   const location = useLocation();
+  const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const isAdmin = user?.email === adminEmail;
 
   const navLinks = [
     { name: 'Início', path: '/' },
@@ -28,18 +30,48 @@ export const Navbar: FC = () => {
           
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-4">
-              {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.path}
-                  className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary transition-colors"
-                >
-                  {link.name}
-                </a>
-              ))}
+              {navLinks.map((link) => {
+                const isAnchor = link.path.includes('#');
+                const isHome = location.pathname === '/';
+                const sectionId = link.path.split('#')[1];
+
+                if (isAnchor && isHome) {
+                  return (
+                    <button
+                      key={link.name}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        const element = document.getElementById(sectionId);
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                      className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary transition-colors cursor-pointer"
+                    >
+                      {link.name}
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={link.name}
+                    to={link.path}
+                    className="rounded-md px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
               
               {user ? (
                 <div className="flex items-center gap-4">
+                   {isAdmin && (
+                     <Link to="/admin" className="text-sm font-medium text-slate-500 hover:text-primary flex items-center gap-1">
+                       <ShieldCheck className="w-4 h-4" />
+                       Admin
+                     </Link>
+                   )}
                    <Link to="/agendar">
                       <Button variant="primary" size="sm">
                         <Calendar className="mr-2 h-4 w-4" />
@@ -75,16 +107,41 @@ export const Navbar: FC = () => {
       {isOpen && (
         <div className="md:hidden">
           <div className="space-y-1 px-2 pb-3 pt-2 sm:px-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.path}
-                className="block rounded-md px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-primary"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.name}
-              </a>
-            ))}
+            {navLinks.map((link) => {
+              const isAnchor = link.path.includes('#');
+              const isHome = location.pathname === '/';
+              const sectionId = link.path.split('#')[1];
+
+              if (isAnchor && isHome) {
+                return (
+                  <button
+                    key={link.name}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setIsOpen(false);
+                      const element = document.getElementById(sectionId);
+                      if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }}
+                    className="block w-full text-left rounded-md px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-primary"
+                  >
+                    {link.name}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={link.name}
+                  to={link.path}
+                  className="block rounded-md px-3 py-2 text-base font-medium text-slate-700 hover:bg-slate-50 hover:text-primary"
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.name}
+                </Link>
+              );
+            })}
             <div className="mt-4 border-t pt-4">
                {user ? (
                  <div className="space-y-2">
@@ -95,7 +152,15 @@ export const Navbar: FC = () => {
                     <Link to="/agendar" onClick={() => setIsOpen(false)}>
                       <Button className="w-full mt-2">Agendar Consulta</Button>
                     </Link>
-                    <Button variant="ghost" className="w-full justify-start text-red-500" onClick={() => { logout(); setIsOpen(false); }}>
+                    {isAdmin && (
+                      <Link to="/admin" onClick={() => setIsOpen(false)}>
+                        <Button variant="outline" className="w-full mt-2">
+                          <ShieldCheck className="w-4 h-4 mr-2" />
+                          Painel Admin
+                        </Button>
+                      </Link>
+                    )}
+                    <Button variant="ghost" className="w-full justify-start text-red-500 mt-2" onClick={() => { logout(); setIsOpen(false); }}>
                       Sair
                     </Button>
                  </div>

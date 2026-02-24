@@ -1,32 +1,62 @@
 import { useEffect, useState, type FC } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchAvailableSlots, bookAppointment } from '../services/calendarService';
-import { AppointmentSlot } from '../types';
+import { fetchAvailableSlots, bookAppointment, fetchUserAppointments } from '../services/calendarService';
+import { AppointmentSlot, Appointment } from '../types';
 import { Button } from './Button';
-import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Booking: FC = () => {
   const { user, login, isLoading: authLoading } = useAuth();
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
+  const [myAppointments, setMyAppointments] = useState<Appointment[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<AppointmentSlot | null>(null);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
 
-  // Load slots when component mounts (or user logs in)
+  // Controle da Semana Atual (Começando no Domingo passado/hoje na meia-noite)
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const day = today.getDay(); // 0 = Sunday, 1 = Monday...
+    const diff = today.getDate() - day; // Move para o último Domingo
+    return new Date(today.setDate(diff));
+  });
+
+  const nextWeek = () => {
+    setCurrentWeekStart(prev => {
+      const next = new Date(prev);
+      next.setDate(next.getDate() + 7);
+      return next;
+    });
+  };
+
+  const prevWeek = () => {
+    setCurrentWeekStart(prev => {
+      const p = new Date(prev);
+      p.setDate(p.getDate() - 7);
+      return p;
+    });
+  };
+
+  // Load data when component mounts (or user logs in)
   useEffect(() => {
     if (user) {
-      loadSlots();
+      loadData();
     }
   }, [user]);
 
-  const loadSlots = async () => {
+  const loadData = async () => {
     setLoadingSlots(true);
     try {
-      const data = await fetchAvailableSlots();
-      setSlots(data);
+      const [slotsData, apptsData] = await Promise.all([
+        fetchAvailableSlots(),
+        fetchUserAppointments(user!.email)
+      ]);
+      setSlots(slotsData);
+      setMyAppointments(apptsData);
     } catch (error) {
-      console.error("Failed to load slots", error);
+      console.error("Failed to load data", error);
     } finally {
       setLoadingSlots(false);
     }
@@ -36,18 +66,41 @@ export const Booking: FC = () => {
     if (!selectedSlot || !user) return;
     setBookingStatus('processing');
     try {
-      await bookAppointment(selectedSlot.id, user.email);
-      setBookingStatus('success');
+      const success = await bookAppointment(selectedSlot.id, user.email);
+      if (success) {
+        setBookingStatus('success');
+      } else {
+        setBookingStatus('error');
+      }
     } catch (error) {
       setBookingStatus('error');
     }
   };
 
-  // Group slots by date for better UI
-  const groupedSlots = slots.reduce((acc, slot) => {
-    const dateStr = slot.date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
-    if (!acc[dateStr]) acc[dateStr] = [];
-    acc[dateStr].push(slot);
+  // Filtra de Domingo até Sábado (23:59:59) da quinzena selecionada
+  const currentWeekEnd = new Date(currentWeekStart);
+  currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+  currentWeekEnd.setHours(23, 59, 59, 999);
+
+  const slotsInWeek = slots.filter(slot => slot.date >= currentWeekStart && slot.date <= currentWeekEnd);
+
+  // Group and sort slots by date for better UI
+  const groupedSlots = Object.entries(
+    slotsInWeek.reduce((acc, slot) => {
+      // Use ISO date string to ensure correct day sorting in Object keys later
+      const dateKey = slot.date.toISOString().split('T')[0];
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(slot);
+      return acc;
+    }, {} as Record<string, AppointmentSlot[]>)
+  ).sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+  .reduce((acc, [dateKey, daySlots]) => {
+    // Format back to human readable only after sorting keys
+    const dateObj = new Date(dateKey + 'T12:00:00');
+    const displayDate = dateObj.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+    
+    // Sort times within the day
+    acc[displayDate] = daySlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
     return acc;
   }, {} as Record<string, AppointmentSlot[]>);
 
@@ -98,9 +151,21 @@ export const Booking: FC = () => {
                 Sua consulta foi agendada para <strong>{selectedSlot?.date.toLocaleDateString()} às {selectedSlot?.startTime}</strong>.
                 Você receberá um e-mail com o link da videochamada em breve.
               </p>
-              <Link to="/">
-                <Button variant="outline">Voltar para Início</Button>
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button 
+                   variant="primary" 
+                   onClick={() => {
+                     setBookingStatus('idle');
+                     setSelectedSlot(null);
+                     loadData();
+                   }}
+                >
+                  Ver Meus Agendamentos
+                </Button>
+                <Link to="/">
+                  <Button variant="outline">Voltar para Início</Button>
+                </Link>
+              </div>
            </div>
         </div>
      )
@@ -113,12 +178,79 @@ export const Booking: FC = () => {
         <p className="text-slate-600 mt-2">Selecione um horário para sua sessão de terapia online.</p>
       </div>
 
+      {/* Minhas Consultas */}
+      {myAppointments.filter(appt => appt.date >= new Date(new Date().setHours(0,0,0,0))).length > 0 && (
+        <div className="mb-10 bg-teal-50/50 rounded-2xl p-6 border border-teal-100">
+           <h2 className="text-xl font-bold text-slate-900 mb-4 flex items-center gap-2">
+             <CalendarIcon className="w-5 h-5 text-primary" />
+             Minhas Próximas Sessões
+           </h2>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+             {myAppointments
+               .filter(appt => appt.date >= new Date(new Date().setHours(0,0,0,0)))
+               .map(appt => (
+                 <div key={appt.id} className="bg-white rounded-xl p-4 border border-teal-100 shadow-sm flex items-start gap-3">
+                   <div className="bg-teal-100/50 p-2 rounded-lg text-primary">
+                     <Clock className="w-5 h-5" />
+                   </div>
+                   <div>
+                     <p className="font-semibold text-slate-900 capitalize">
+                       {appt.date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                     </p>
+                     <p className="text-sm text-slate-600 mt-0.5">
+                       {appt.startTime} - {appt.endTime}
+                     </p>
+                     <span className="inline-flex mt-2 items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                       Confirmado
+                     </span>
+                   </div>
+                 </div>
+               ))
+             }
+           </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Calendar Column */}
         <div className="lg:col-span-2 space-y-6">
+          
+          {/* Menu Semanal */}
+          <div className="flex items-center justify-between bg-white px-2 py-3 sm:p-4 rounded-xl border border-slate-200 shadow-sm">
+            <button 
+               onClick={prevWeek} 
+               className="p-1 sm:p-2 sm:px-3 flex items-center gap-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              <span className="hidden sm:inline pb-0.5 text-sm font-medium">Voltar</span>
+            </button>
+            <div className="text-center">
+               <p className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Período de Agenda</p>
+               <h3 className="text-sm sm:text-base font-bold text-slate-800">
+                  {currentWeekStart.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})} até {currentWeekEnd.toLocaleDateString('pt-BR', {day: '2-digit', month: 'short', year: 'numeric'})}
+               </h3>
+            </div>
+            <button 
+               onClick={nextWeek} 
+               className="p-1 sm:p-2 sm:px-3 flex items-center gap-1 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"
+            >
+              <span className="hidden sm:inline pb-0.5 text-sm font-medium">Avançar</span>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+
           {loadingSlots ? (
              <div className="flex justify-center py-20">
                 <Loader2 className="h-8 w-8 animate-spin text-slate-300" />
+             </div>
+          ) : Object.keys(groupedSlots).length === 0 ? (
+             <div className="text-center py-20 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                <CalendarIcon className="mx-auto h-12 w-12 text-slate-300 mb-3" />
+                <h3 className="text-lg font-medium text-slate-900">Sem horários nesta semana</h3>
+                <p className="text-slate-500 mt-1 max-w-sm mx-auto">Tente navegar para a próxima semana e verificar novas disponibilidades.</p>
+                <button onClick={nextWeek} className="mt-4 text-primary font-medium hover:underline inline-flex items-center gap-1">
+                  Ver próxima semana <ChevronRight className="w-4 h-4" />
+                </button>
              </div>
           ) : (
             Object.entries(groupedSlots).map(([dateStr, daySlots]) => (

@@ -13,6 +13,16 @@ export interface AppointmentSlot {
   available: boolean;
 }
 
+export interface Appointment {
+  id: string;
+  slotId: string;
+  userEmail: string;
+  date: Date;
+  startTime: string;
+  endTime: string;
+  createdAt: Date;
+}
+
 export enum ServiceType {
   INDIVIDUAL = 'Psicoterapia Individual',
   COUPLE = 'Terapia de Casal',
