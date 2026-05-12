@@ -39,8 +39,10 @@ export const Booking: FC = () => {
     });
   };
 
-  // Load data when component mounts (or user logs in)
+  // Reseta o estado quando o usuário muda (troca de conta ou logout)
   useEffect(() => {
+    setBookingStatus('idle');
+    setSelectedSlot(null);
     if (user) {
       loadData();
     }

@@ -29,6 +29,7 @@ const dayNames: Record<number, string> = {
 
 export const AdminPanel: FC = () => {
   const { user } = useAuth();
+  const calendarEmail = import.meta.env.VITE_GOOGLE_CALENDAR_EMAIL;
   
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -151,19 +152,33 @@ export const AdminPanel: FC = () => {
       currentDay.setDate(currentDay.getDate() + 1);
     }
 
-    if (newSlots.length === 0) {
-      alert("Nenhum horário válido encontrado com essas regras no período.");
+    const finalSlotsToCreate = newSlots.filter(newSlot => {
+      const alreadyExists = slots.some(existing => {
+        const sameDay = existing.date.toDateString() === newSlot.date.toDateString();
+        const sameTime = existing.startTime === newSlot.startTime;
+        return sameDay && sameTime;
+      });
+      return !alreadyExists;
+    });
+
+    if (finalSlotsToCreate.length === 0) {
+      alert("Todos os horários gerados já existem na sua agenda. Nenhuma alteração foi feita.");
       return;
     }
 
-    if (!confirm(`Isso irá criar ${newSlots.length} novos horários vagos na agenda.\nDeseja continuar?`)) {
+    const skippedCount = newSlots.length - finalSlotsToCreate.length;
+    const confirmMsg = skippedCount > 0 
+      ? `Isso irá criar ${finalSlotsToCreate.length} novos horários (pulando ${skippedCount} que já existem).\nDeseja continuar?`
+      : `Isso irá criar ${finalSlotsToCreate.length} novos horários vago na agenda.\nDeseja continuar?`;
+
+    if (!confirm(confirmMsg)) {
       return;
     }
 
     setIsCreating(true);
     try {
-      await Promise.all(newSlots.map(slot => createSlot(slot.date, slot.startTime, slot.endTime)));
-      alert("Agenda gerada com sucesso!");
+      await Promise.all(finalSlotsToCreate.map(slot => createSlot(slot.date, slot.startTime, slot.endTime)));
+      alert("Agenda atualizada com sucesso!");
       await loadData();
     } catch (error) {
       console.error(error);
@@ -253,7 +268,21 @@ export const AdminPanel: FC = () => {
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900">Painel do Administrador</h1>
-        <p className="text-slate-600 mt-2">Sua central de controle da clínica. Logado como: <span className="font-medium text-slate-800">{user?.email}</span></p>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+          <div className="text-slate-600">
+            <p>Logado como: <span className="font-medium text-slate-800">{user?.email}</span></p>
+            <p className="text-xs">Agenda vinculada: <span className="text-primary">{calendarEmail}</span></p>
+          </div>
+          <a 
+            href={`https://calendar.google.com/calendar/u/${calendarEmail}/r`} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-primary hover:text-primary transition-all shadow-sm"
+          >
+            <Calendar className="w-4 h-4" />
+            Abrir Google Agenda
+          </a>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">

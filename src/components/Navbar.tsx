@@ -10,7 +10,8 @@ export const Navbar: FC = () => {
   const { user, login, logout, isLoading } = useAuth();
   const location = useLocation();
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
-  const isAdmin = user?.email === adminEmail;
+  const calendarEmail = import.meta.env.VITE_GOOGLE_CALENDAR_EMAIL;
+  const isAdmin = user?.email === adminEmail || user?.email === calendarEmail;
 
   const navLinks = [
     { name: 'Início', path: '/' },
@@ -66,18 +67,21 @@ export const Navbar: FC = () => {
               
               {user ? (
                 <div className="flex items-center gap-4">
-                   {isAdmin && (
-                     <Link to="/admin" className="text-sm font-medium text-slate-500 hover:text-primary flex items-center gap-1">
-                       <ShieldCheck className="w-4 h-4" />
-                       Admin
+                   {isAdmin ? (
+                     <Link to="/admin">
+                       <Button variant="primary" size="sm">
+                         <Calendar className="mr-2 h-4 w-4" />
+                         Ver Minha Agenda
+                       </Button>
+                     </Link>
+                   ) : (
+                     <Link to="/agendar">
+                        <Button variant="primary" size="sm">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          Agendar
+                        </Button>
                      </Link>
                    )}
-                   <Link to="/agendar">
-                      <Button variant="primary" size="sm">
-                        <Calendar className="mr-2 h-4 w-4" />
-                        Agendar
-                      </Button>
-                   </Link>
                    <div className="flex items-center gap-2 border-l pl-4">
                       <span className="text-sm font-medium text-slate-700">Olá, {user.name.split(' ')[0]}</span>
                       <button onClick={() => logout()} className="text-xs text-slate-500 hover:text-red-500">Sair</button>
@@ -149,15 +153,13 @@ export const Navbar: FC = () => {
                       <UserIcon className="h-5 w-5 text-slate-500" />
                       <span className="font-medium text-slate-700">{user.name}</span>
                     </div>
-                    <Link to="/agendar" onClick={() => setIsOpen(false)}>
-                      <Button className="w-full mt-2">Agendar Consulta</Button>
-                    </Link>
-                    {isAdmin && (
+                    {isAdmin ? (
                       <Link to="/admin" onClick={() => setIsOpen(false)}>
-                        <Button variant="outline" className="w-full mt-2">
-                          <ShieldCheck className="w-4 h-4 mr-2" />
-                          Painel Admin
-                        </Button>
+                        <Button className="w-full mt-2">Ver Minha Agenda</Button>
+                      </Link>
+                    ) : (
+                      <Link to="/agendar" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full mt-2">Agendar Consulta</Button>
                       </Link>
                     )}
                     <Button variant="ghost" className="w-full justify-start text-red-500 mt-2" onClick={() => { logout(); setIsOpen(false); }}>

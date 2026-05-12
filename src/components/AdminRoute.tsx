@@ -10,6 +10,7 @@ interface AdminRouteProps {
 export const AdminRoute: FC<AdminRouteProps> = ({ children }) => {
   const { user, isLoading } = useAuth();
   const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+  const calendarEmail = import.meta.env.VITE_GOOGLE_CALENDAR_EMAIL;
 
   if (isLoading) {
     return (
@@ -19,7 +20,9 @@ export const AdminRoute: FC<AdminRouteProps> = ({ children }) => {
     );
   }
 
-  if (!user || user.email !== adminEmail) {
+  const isAdmin = user && (user.email === adminEmail || user.email === calendarEmail);
+
+  if (!isAdmin) {
     console.warn("Acesso bloqueado. Email não é admin:", user?.email);
     // Redirect non-admins back to home
     return <Navigate to="/" replace />;
