@@ -11,6 +11,7 @@ const KEYFILE = path.join(__dirname, '..', 'service-account.json');
 // Escopos necessários para a agenda
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
+// A linha abaixo faz deploy apenas para o servidor local
 export const onCreateAppointment = functions.region('southamerica-east1').firestore
   .document('appointments/{appointmentId}')
   .onCreate(async (snap: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
