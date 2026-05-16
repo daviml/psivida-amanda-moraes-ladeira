@@ -69,12 +69,6 @@ exports.onCreateAppointment = functions.region('southamerica-east1').firestore
                 dateTime: endDateTime.toISOString(),
                 timeZone: 'America/Sao_Paulo',
             },
-            conferenceData: {
-                createRequest: {
-                    requestId: context.params.appointmentId,
-                    conferenceSolutionKey: { type: 'hangoutsMeet' },
-                },
-            },
             reminders: {
                 useDefault: false,
                 overrides: [
@@ -86,14 +80,16 @@ exports.onCreateAppointment = functions.region('southamerica-east1').firestore
         const response = await calendar.events.insert({
             calendarId: 'amandaladeirapsi@gmail.com',
             requestBody: event,
-            conferenceDataVersion: 1,
         });
-        const meetLink = response.data.hangoutLink;
-        // Salvar o link do Meet de volta no documento do Firestore
-        if (meetLink) {
-            await snap.ref.update({ googleMeetLink: meetLink });
-            console.log(`Evento criado com sucesso! Link: ${meetLink}`);
-        }
+        const eventId = response.data.id;
+        const eventLink = response.data.htmlLink;
+        // Salvar o ID e link do evento no Firestore
+        await snap.ref.update({
+            googleCalendarEventId: eventId,
+            googleCalendarLink: eventLink,
+            calendarSynced: true,
+        });
+        console.log(`Evento criado com sucesso! ID: ${eventId}, Link: ${eventLink}`);
         return { success: true };
     }
     catch (error) {
