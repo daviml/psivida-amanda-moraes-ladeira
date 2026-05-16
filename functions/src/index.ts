@@ -1,4 +1,4 @@
-import * as functions from 'firebase-functions';
+import * as functions from 'firebase-functions/v1';
 import * as admin from 'firebase-admin';
 import { google } from 'googleapis';
 import * as path from 'path';
@@ -11,9 +11,9 @@ const KEYFILE = path.join(__dirname, '..', 'service-account.json');
 // Escopos necessários para a agenda
 const SCOPES = ['https://www.googleapis.com/auth/calendar'];
 
-export const onCreateAppointment = functions.firestore
+export const onCreateAppointment = functions.region('southamerica-east1').firestore
   .document('appointments/{appointmentId}')
-  .onCreate(async (snap, context) => {
+  .onCreate(async (snap: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
     const data = snap.data();
     if (!data) return;
 
