@@ -1,6 +1,6 @@
 import { type FC } from 'react';
 import { Mail, Phone, MapPin, Instagram } from 'lucide-react';
-import { PSYCHOLOGIST_NAME, CRP_NUMBER, CONTACT_EMAIL, CONTACT_PHONE } from '../constants';
+import { PSYCHOLOGIST_NAME, CRP_NUMBER, CONTACT_EMAIL, CONTACT_PHONE, INSTAGRAM_URL } from '../constants';
 
 export const Footer: FC = () => {
   return (
@@ -36,7 +36,12 @@ export const Footer: FC = () => {
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-white mb-4">Redes Sociais</h3>
             <div className="flex space-x-6">
-              <a href="#" className="text-slate-400 hover:text-white">
+              <a 
+                href={INSTAGRAM_URL} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-slate-400 hover:text-white transition-colors"
+              >
                 <span className="sr-only">Instagram</span>
                 <Instagram className="h-6 w-6" />
               </a>
