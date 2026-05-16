@@ -43,8 +43,8 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
       endDateTime.setHours(parseInt(endHour), parseInt(endMin), 0);
 
       const event = {
-        summary: `Consulta Psi - ${userEmail}`,
-        description: 'Atendimento Psicológico com Amanda Ladeira',
+        summary: `Consulta: ${userEmail}`,
+        description: `Atendimento Psicológico com Amanda Ladeira\nPaciente: ${userEmail}`,
         start: {
           dateTime: startDateTime.toISOString(),
           timeZone: 'America/Sao_Paulo',
@@ -53,7 +53,6 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
           dateTime: endDateTime.toISOString(),
           timeZone: 'America/Sao_Paulo',
         },
-        attendees: [{ email: userEmail }],
         conferenceData: {
           createRequest: {
             requestId: context.params.appointmentId,
@@ -84,8 +83,13 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
       }
 
       return { success: true };
-    } catch (error) {
-      console.error('Erro ao criar evento na agenda:', error);
-      return { success: false, error };
+    } catch (error: any) {
+      console.error('Erro detalhado ao criar evento:', {
+        message: error.message,
+        errors: error.errors,
+        code: error.code,
+        response: error.response?.data
+      });
+      return { success: false, error: error.message };
     }
   });
