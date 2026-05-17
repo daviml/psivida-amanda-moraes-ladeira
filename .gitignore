@@ -28,3 +28,4 @@ functions/service-account.json
 *.sw?
 
 .env
+.vercel
