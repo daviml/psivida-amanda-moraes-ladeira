@@ -1,7 +1,7 @@
 import { FC, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AppointmentSlot, Appointment } from '../types';
-import { fetchAvailableSlots, fetchAllAppointments, createSlot, deleteSlot } from '../services/calendarService';
+import { fetchAvailableSlots, fetchAllAppointments, createSlot, deleteSlot, cancelAppointment } from '../services/calendarService';
 import { Button } from './Button';
 import { Calendar, Clock, Trash2, Users, Settings, Loader2 } from 'lucide-react';
 
@@ -34,6 +34,7 @@ export const AdminPanel: FC = () => {
   const [slots, setSlots] = useState<AppointmentSlot[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   
   // Generator State
   const [sessionDuration, setSessionDuration] = useState(50);
@@ -218,6 +219,23 @@ export const AdminPanel: FC = () => {
       await loadData();
     } catch (error) {
       alert("Erro ao apagar horário.");
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string, slotId: string) => {
+    if (!confirm("Tem certeza que deseja cancelar esta consulta? O horário voltará a ficar disponível para novos agendamentos.")) return;
+    setCancellingId(appointmentId);
+    try {
+      const success = await cancelAppointment(appointmentId, slotId);
+      if (success) {
+        alert("Consulta cancelada com sucesso!");
+        await loadData();
+      }
+    } catch (error: any) {
+      console.error("Error cancelling appointment:", error);
+      alert("Não foi possível cancelar a consulta: " + (error?.message || error));
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -431,6 +449,7 @@ export const AdminPanel: FC = () => {
                          <th className="px-6 py-4 font-semibold">Data da Consulta</th>
                          <th className="px-6 py-4 font-semibold">Horário</th>
                          <th className="px-6 py-4 font-semibold">Agendado em</th>
+                         <th className="px-6 py-4 font-semibold">Ações</th>
                        </tr>
                      </thead>
                      <tbody className="divide-y divide-slate-100">
@@ -450,6 +469,29 @@ export const AdminPanel: FC = () => {
                            </td>
                            <td className="px-6 py-4 text-xs text-slate-400">
                              {appt.createdAt.toLocaleDateString('pt-BR', { hour: '2-digit', minute:'2-digit' })}
+                           </td>
+                           <td className="px-6 py-4 text-sm">
+                             <button
+                               disabled={cancellingId !== null}
+                               onClick={() => handleCancelAppointment(appt.id, appt.slotId)}
+                               className={`inline-flex items-center gap-1 px-3 py-1 rounded-md text-xs font-medium border border-transparent transition-all
+                                 ${cancellingId === appt.id
+                                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                                   : 'bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 cursor-pointer'
+                                 }`}
+                             >
+                               {cancellingId === appt.id ? (
+                                 <>
+                                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                   Cancelando...
+                                 </>
+                               ) : (
+                                 <>
+                                   <Trash2 className="w-3.5 h-3.5" />
+                                   Cancelar
+                                 </>
+                               )}
+                             </button>
                            </td>
                          </tr>
                        ))}

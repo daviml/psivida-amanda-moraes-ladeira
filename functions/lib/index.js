@@ -23,7 +23,7 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onCreateAppointment = void 0;
+exports.onDeleteAppointment = exports.onCreateAppointment = void 0;
 const functions = __importStar(require("firebase-functions/v1"));
 const admin = __importStar(require("firebase-admin"));
 const googleapis_1 = require("googleapis");
@@ -99,6 +99,37 @@ exports.onCreateAppointment = functions.region('southamerica-east1').firestore
             code: error.code,
             response: error.response?.data
         });
+        return { success: false, error: error.message };
+    }
+});
+exports.onDeleteAppointment = functions.region('southamerica-east1').firestore
+    .document('appointments/{appointmentId}')
+    .onDelete(async (snap, context) => {
+    const data = snap.data();
+    if (!data)
+        return;
+    const { googleCalendarEventId } = data;
+    if (!googleCalendarEventId) {
+        console.log('Nenhum ID de evento da Google Agenda encontrado para este agendamento.');
+        return;
+    }
+    try {
+        // Autenticação com a Service Account
+        const auth = new googleapis_1.google.auth.GoogleAuth({
+            keyFile: KEYFILE,
+            scopes: SCOPES,
+        });
+        const authClient = await auth.getClient();
+        const calendar = googleapis_1.google.calendar({ version: 'v3', auth: authClient });
+        await calendar.events.delete({
+            calendarId: 'amandaladeirapsi@gmail.com',
+            eventId: googleCalendarEventId,
+        });
+        console.log(`Evento da Google Agenda excluído com sucesso! ID: ${googleCalendarEventId}`);
+        return { success: true };
+    }
+    catch (error) {
+        console.error('Erro ao excluir evento da Google Agenda:', error.message);
         return { success: false, error: error.message };
     }
 });

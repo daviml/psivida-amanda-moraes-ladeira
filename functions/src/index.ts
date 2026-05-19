@@ -89,3 +89,38 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
       return { success: false, error: error.message };
     }
   });
+
+export const onDeleteAppointment = functions.region('southamerica-east1').firestore
+  .document('appointments/{appointmentId}')
+  .onDelete(async (snap: functions.firestore.QueryDocumentSnapshot, context: functions.EventContext) => {
+    const data = snap.data();
+    if (!data) return;
+
+    const { googleCalendarEventId } = data;
+    if (!googleCalendarEventId) {
+      console.log('Nenhum ID de evento da Google Agenda encontrado para este agendamento.');
+      return;
+    }
+
+    try {
+      // Autenticação com a Service Account
+      const auth = new google.auth.GoogleAuth({
+        keyFile: KEYFILE,
+        scopes: SCOPES,
+      });
+      const authClient = await auth.getClient();
+      
+      const calendar = google.calendar({ version: 'v3', auth: authClient as any });
+
+      await calendar.events.delete({
+        calendarId: 'amandaladeirapsi@gmail.com',
+        eventId: googleCalendarEventId,
+      });
+
+      console.log(`Evento da Google Agenda excluído com sucesso! ID: ${googleCalendarEventId}`);
+      return { success: true };
+    } catch (error: any) {
+      console.error('Erro ao excluir evento da Google Agenda:', error.message);
+      return { success: false, error: error.message };
+    }
+  });

@@ -162,3 +162,37 @@ export const fetchUserAppointments = async (userEmail: string): Promise<Appointm
     throw error;
   }
 };
+
+export const cancelAppointment = async (appointmentId: string, slotId?: string): Promise<boolean> => {
+  try {
+    await runTransaction(db, async (transaction) => {
+      const apptRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId);
+
+      // 1. All READS first
+      const apptDoc = await transaction.get(apptRef);
+      if (!apptDoc.exists()) {
+        throw new Error("Appointment does not exist!");
+      }
+
+      let slotDoc = null;
+      let slotRef = null;
+      if (slotId) {
+        slotRef = doc(db, SLOTS_COLLECTION, slotId);
+        slotDoc = await transaction.get(slotRef);
+      }
+
+      // 2. All WRITES second
+      transaction.delete(apptRef);
+
+      if (slotId && slotRef && slotDoc && slotDoc.exists()) {
+        transaction.update(slotRef, { available: true });
+      }
+    });
+
+    console.log(`Cancelled appointment ${appointmentId} and freed slot ${slotId}`);
+    return true;
+  } catch (error) {
+    console.error("Cancellation failed: ", error);
+    throw error;
+  }
+};

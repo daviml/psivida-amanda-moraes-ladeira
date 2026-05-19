@@ -7,7 +7,9 @@ import { describe, it, expect, vi } from 'vitest';
 // Mock dependencies
 vi.mock('../../services/calendarService', () => ({
   fetchAvailableSlots: vi.fn(),
-  bookAppointment: vi.fn()
+  bookAppointment: vi.fn(),
+  fetchUserAppointments: vi.fn().mockResolvedValue([]),
+  cancelAppointment: vi.fn()
 }));
 
 // Mock Auth Context to simulate logged in user

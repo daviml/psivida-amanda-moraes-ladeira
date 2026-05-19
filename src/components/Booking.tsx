@@ -1,6 +1,6 @@
 import { useEffect, useState, type FC } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchAvailableSlots, bookAppointment, fetchUserAppointments } from '../services/calendarService';
+import { fetchAvailableSlots, bookAppointment, fetchUserAppointments, cancelAppointment } from '../services/calendarService';
 import { AppointmentSlot, Appointment } from '../types';
 import { Button } from './Button';
 import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -13,6 +13,7 @@ export const Booking: FC = () => {
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<AppointmentSlot | null>(null);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'processing' | 'success' | 'error'>('idle');
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   // Controle da Semana Atual (Começando no Domingo passado/hoje na meia-noite)
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(() => {
@@ -76,6 +77,26 @@ export const Booking: FC = () => {
       }
     } catch (error) {
       setBookingStatus('error');
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId: string, slotId: string) => {
+    if (!window.confirm("Tem certeza que deseja cancelar esta sessão? O horário será liberado para outros pacientes.")) {
+      return;
+    }
+    
+    setCancellingId(appointmentId);
+    try {
+      const success = await cancelAppointment(appointmentId, slotId);
+      if (success) {
+        alert("Sessão cancelada com sucesso!");
+        await loadData();
+      }
+    } catch (error: any) {
+      console.error("Error cancelling appointment:", error);
+      alert("Não foi possível cancelar o agendamento: " + (error?.message || error));
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -202,9 +223,29 @@ export const Booking: FC = () => {
                      <p className="text-sm text-slate-600 mt-0.5">
                        {appt.startTime} - {appt.endTime}
                      </p>
-                     <span className="inline-flex mt-2 items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
-                       Confirmado
-                     </span>
+                     <div className="mt-3 flex items-center gap-3">
+                       <span className="inline-flex mt-2 items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                         Confirmado
+                       </span>
+                       <button
+                         disabled={cancellingId !== null}
+                         onClick={() => handleCancelAppointment(appt.id, appt.slotId)}
+                         className={`inline-flex items-center gap-1 text-[11px] font-medium transition-colors
+                           ${cancellingId === appt.id 
+                             ? 'text-slate-400 cursor-not-allowed' 
+                             : 'text-red-500 hover:text-red-700 hover:underline bg-transparent border-none p-0 cursor-pointer'
+                           }`}
+                       >
+                         {cancellingId === appt.id ? (
+                           <>
+                             <Loader2 className="w-3 h-3 animate-spin" />
+                             Cancelando...
+                           </>
+                         ) : (
+                           'Cancelar'
+                         )}
+                       </button>
+                     </div>
                    </div>
                  </div>
                ))
