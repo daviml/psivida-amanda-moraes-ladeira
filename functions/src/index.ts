@@ -30,27 +30,25 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
       
       const calendar = google.calendar({ version: 'v3', auth: authClient as any });
 
-      // Preparar datas para o Google (formato ISO)
+      // Preparar datas para o Google (formato ISO na timezone local)
       // O Firestore salva como Timestamp, então convertemos para Date
       const appointmentDate = date.toDate();
+      const year = appointmentDate.getUTCFullYear();
+      const month = String(appointmentDate.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(appointmentDate.getUTCDate()).padStart(2, '0');
       
-      const startDateTime = new Date(appointmentDate);
-      const [startHour, startMin] = startTime.split(':');
-      startDateTime.setHours(parseInt(startHour), parseInt(startMin), 0);
-
-      const endDateTime = new Date(appointmentDate);
-      const [endHour, endMin] = endTime.split(':');
-      endDateTime.setHours(parseInt(endHour), parseInt(endMin), 0);
+      const startIso = `${year}-${month}-${day}T${startTime}:00`;
+      const endIso = `${year}-${month}-${day}T${endTime}:00`;
 
       const event = {
         summary: `Consulta: ${userEmail}`,
         description: `Atendimento Psicológico com Amanda Ladeira\nPaciente: ${userEmail}`,
         start: {
-          dateTime: startDateTime.toISOString(),
+          dateTime: startIso,
           timeZone: 'America/Sao_Paulo',
         },
         end: {
-          dateTime: endDateTime.toISOString(),
+          dateTime: endIso,
           timeZone: 'America/Sao_Paulo',
         },
         reminders: {
