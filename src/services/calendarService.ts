@@ -1,6 +1,7 @@
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, doc, runTransaction, Timestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import { AppointmentSlot, Appointment } from '../types';
+import { PERMANENT_MEETING_LINK } from '../constants';
 
 const SLOTS_COLLECTION = 'slots';
 const APPOINTMENTS_COLLECTION = 'appointments';
@@ -34,8 +35,14 @@ export const fetchAvailableSlots = async (): Promise<AppointmentSlot[]> => {
       } as AppointmentSlot;
     });
 
-    // Retorna apenas os que de fato estão vagos
-    return allFutureSlots.filter(slot => slot.available);
+    // Retorna apenas os que de fato estão vagos e que não estão no passado
+    return allFutureSlots.filter(slot => {
+      if (!slot.available) return false;
+      const slotStart = new Date(slot.date.getTime());
+      const [hours, minutes] = slot.startTime.split(':').map(Number);
+      slotStart.setHours(hours, minutes, 0, 0);
+      return slotStart.getTime() > now.getTime();
+    });
   } catch (error) {
     console.error("Error fetching available slots:", error);
     throw error;
@@ -68,6 +75,7 @@ export const bookAppointment = async (slotId: string, userEmail: string): Promis
         date: slotData.date,
         startTime: slotData.startTime,
         endTime: slotData.endTime,
+        googleMeetLink: PERMANENT_MEETING_LINK,
         createdAt: Timestamp.now()
       });
     });
@@ -122,7 +130,8 @@ export const fetchAllAppointments = async (): Promise<Appointment[]> => {
         date: (data.date as Timestamp).toDate(),
         startTime: data.startTime,
         endTime: data.endTime,
-        createdAt: (data.createdAt as Timestamp).toDate()
+        createdAt: (data.createdAt as Timestamp).toDate(),
+        googleMeetLink: data.googleMeetLink
       } as Appointment;
     });
   } catch (error) {
@@ -151,7 +160,8 @@ export const fetchUserAppointments = async (userEmail: string): Promise<Appointm
         date: (data.date as Timestamp).toDate(),
         startTime: data.startTime,
         endTime: data.endTime,
-        createdAt: (data.createdAt as Timestamp).toDate()
+        createdAt: (data.createdAt as Timestamp).toDate(),
+        googleMeetLink: data.googleMeetLink
       } as Appointment;
     });
     

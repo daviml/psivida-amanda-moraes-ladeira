@@ -18,7 +18,7 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
     const data = snap.data();
     if (!data) return;
 
-    const { userEmail, date, startTime, endTime } = data;
+    const { userEmail, date, startTime, endTime, googleMeetLink } = data;
     
     try {
       // Autenticação com a Service Account
@@ -42,7 +42,7 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
 
       const event = {
         summary: `Consulta: ${userEmail}`,
-        description: `Atendimento Psicológico com Amanda Ladeira\nPaciente: ${userEmail}`,
+        description: `Atendimento Psicológico com Amanda Ladeira\nPaciente: ${userEmail}\n\nLink da Videochamada: ${googleMeetLink || 'Não informado'}`,
         start: {
           dateTime: startIso,
           timeZone: 'America/Sao_Paulo',
@@ -51,6 +51,7 @@ export const onCreateAppointment = functions.region('southamerica-east1').firest
           dateTime: endIso,
           timeZone: 'America/Sao_Paulo',
         },
+        location: googleMeetLink || 'Google Meet',
         reminders: {
           useDefault: false,
           overrides: [

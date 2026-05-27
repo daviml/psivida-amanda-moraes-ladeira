@@ -3,8 +3,25 @@ import { useAuth } from '../context/AuthContext';
 import { fetchAvailableSlots, bookAppointment, fetchUserAppointments, cancelAppointment } from '../services/calendarService';
 import { AppointmentSlot, Appointment } from '../types';
 import { Button } from './Button';
-import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Check, AlertCircle, Loader2, ChevronLeft, ChevronRight, Video } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+const getGoogleCalendarLink = (appt: Appointment) => {
+  const dateObj = new Date(appt.date);
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  
+  const startClean = appt.startTime.replace(':', '');
+  const endClean = appt.endTime.replace(':', '');
+  
+  const dates = `${year}${month}${day}T${startClean}00/${year}${month}${day}T${endClean}00`;
+  const text = "Consulta de Psicoterapia - Amanda Ladeira";
+  const details = `Atendimento Psicológico Online com Amanda Moraes Ladeira (CRP: 04/58040)\n\nLink da videochamada: ${appt.googleMeetLink || 'Disponível no site'}`;
+  const location = appt.googleMeetLink || "Google Meet";
+  
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(text)}&dates=${dates}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(location)}`;
+};
 
 export const Booking: FC = () => {
   const { user, login, isLoading: authLoading } = useAuth();
@@ -172,7 +189,7 @@ export const Booking: FC = () => {
               <h2 className="text-3xl font-bold text-slate-900 mb-4">Agendamento Confirmado!</h2>
               <p className="text-slate-600 mb-8">
                 Sua consulta foi agendada para <strong>{selectedSlot?.date.toLocaleDateString()} às {selectedSlot?.startTime}</strong>.
-                Você receberá um e-mail com o link da videochamada em breve.
+                Acesse a videochamada pelo botão <strong>"Entrar na Videochamada"</strong> em seus agendamentos, ou salve a sessão no seu calendário clicando em <strong>"Adicionar à minha Agenda"</strong>.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
@@ -213,18 +230,42 @@ export const Booking: FC = () => {
                .filter(appt => appt.date >= new Date(new Date().setHours(0,0,0,0)))
                .map(appt => (
                  <div key={appt.id} className="bg-white rounded-xl p-4 border border-teal-100 shadow-sm flex items-start gap-3">
-                   <div className="bg-teal-100/50 p-2 rounded-lg text-primary">
+                   <div className="bg-teal-100/50 p-2 rounded-lg text-primary shrink-0">
                      <Clock className="w-5 h-5" />
                    </div>
-                   <div>
-                     <p className="font-semibold text-slate-900 capitalize">
+                   <div className="flex-1 min-w-0">
+                     <p className="font-semibold text-slate-900 capitalize truncate">
                        {appt.date.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                      </p>
                      <p className="text-sm text-slate-600 mt-0.5">
                        {appt.startTime} - {appt.endTime}
                      </p>
+
+                     <div className="mt-3 flex flex-wrap gap-2">
+                       {appt.googleMeetLink && (
+                         <a
+                           href={appt.googleMeetLink}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg shadow-sm transition-all hover:shadow-md active:scale-95 cursor-pointer"
+                         >
+                           <Video className="w-3.5 h-3.5" />
+                           Entrar na Videochamada
+                         </a>
+                       )}
+                       <a
+                         href={getGoogleCalendarLink(appt)}
+                         target="_blank"
+                         rel="noopener noreferrer"
+                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg shadow-sm transition-all active:scale-95 cursor-pointer border border-slate-200"
+                       >
+                         <CalendarIcon className="w-3.5 h-3.5" />
+                         Adicionar à minha Agenda
+                       </a>
+                     </div>
+
                      <div className="mt-3 flex items-center gap-3">
-                       <span className="inline-flex mt-2 items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
+                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">
                          Confirmado
                        </span>
                        <button
@@ -238,7 +279,7 @@ export const Booking: FC = () => {
                        >
                          {cancellingId === appt.id ? (
                            <>
-                             <Loader2 className="w-3 h-3 animate-spin" />
+                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                              Cancelando...
                            </>
                          ) : (

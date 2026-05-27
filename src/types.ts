@@ -21,6 +21,7 @@ export interface Appointment {
   startTime: string;
   endTime: string;
   createdAt: Date;
+  googleMeetLink?: string;
 }
 
 export enum ServiceType {

@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { AppointmentSlot, Appointment } from '../types';
 import { fetchAvailableSlots, fetchAllAppointments, createSlot, deleteSlot, cancelAppointment } from '../services/calendarService';
 import { Button } from './Button';
-import { Calendar, Clock, Trash2, Users, Settings, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Trash2, Users, Settings, Loader2, Video } from 'lucide-react';
 
 type DayConfig = {
   active: boolean;
@@ -466,6 +466,17 @@ export const AdminPanel: FC = () => {
                              <span className="inline-flex items-center px-2 py-1 rounded-md bg-teal-50 text-primary text-xs font-medium ring-1 ring-inset ring-teal-500/10">
                                {appt.startTime} - {appt.endTime}
                              </span>
+                             {appt.googleMeetLink && (
+                               <a
+                                 href={appt.googleMeetLink}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="mt-1.5 flex items-center gap-1 text-[11px] text-primary hover:text-teal-700 font-semibold cursor-pointer"
+                               >
+                                 <Video className="w-3.5 h-3.5" />
+                                 Entrar no Meet
+                               </a>
+                             )}
                            </td>
                            <td className="px-6 py-4 text-xs text-slate-400">
                              {appt.createdAt.toLocaleDateString('pt-BR', { hour: '2-digit', minute:'2-digit' })}
